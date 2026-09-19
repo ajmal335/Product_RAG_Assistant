@@ -1,0 +1,21 @@
+productid,name,category,description,stock,season,price
+P001,MacBook Pro 14,Laptop,"Apple MacBook Pro 14-inch with M3 Pro chip, 18GB RAM, and 512GB SSD. Designed for professional development, programming, and creative workloads.",15,All Season,1999
+P002,Dell XPS 15,Laptop,"Dell XPS 15 premium laptop with Intel Core i7 processor, 16GB RAM, and 512GB SSD. Suitable for programming, business, and productivity.",12,All Season,1499
+P003,Lenovo ThinkPad X1 Carbon,Laptop,"Lenovo ThinkPad X1 Carbon business laptop with Intel Core i7 processor, 16GB RAM, and 512GB SSD. Lightweight and designed for professional users.",20,All Season,1399
+P004,ASUS ROG Strix G16,Gaming Laptop,"ASUS ROG Strix G16 gaming laptop with Intel Core i9 processor, 32GB RAM, 1TB SSD, and dedicated NVIDIA graphics. Designed for demanding games and AI workloads.",8,Summer,1799
+P005,HP Pavilion 15,Laptop,"HP Pavilion 15 affordable laptop with Intel Core i5 processor, 8GB RAM, and 512GB SSD. Suitable for students, office work, and everyday computing.",25,All Season,699
+P006,iPhone 16 Pro,Smartphone,"Apple iPhone 16 Pro with advanced camera system, A18 Pro chip, 256GB storage, and premium titanium design.",18,All Season,1199
+P007,Samsung Galaxy S25,Smartphone,"Samsung Galaxy S25 flagship smartphone with Snapdragon processor, 12GB RAM, 256GB storage, and advanced camera features.",22,All Season,999
+P008,Google Pixel 9,Smartphone,"Google Pixel 9 smartphone with advanced AI features, excellent camera system, 128GB storage, and clean Android experience.",16,Winter,799
+P009,Sony WH-1000XM5,Headphones,"Sony wireless noise cancelling headphones with premium audio quality, long battery life, and comfortable over-ear design.",30,All Season,349
+P010,Apple AirPods Pro,Headphones,"Apple AirPods Pro wireless earbuds with active noise cancellation, spatial audio, and USB-C charging case.",35,All Season,249
+P011,Dell UltraSharp 27,Monitor,"Dell UltraSharp 27-inch 4K monitor with accurate colors, high resolution, and ergonomic stand. Suitable for professional and creative work.",10,All Season,549
+P012,LG UltraGear 27,Monitor,"LG UltraGear 27-inch gaming monitor with high refresh rate, fast response time, and QHD resolution. Designed for competitive gaming.",14,Summer,399
+P013,Logitech MX Master 3S,Mouse,"Logitech MX Master 3S wireless productivity mouse with ergonomic design, customizable buttons, and precise tracking.",40,All Season,99
+P014,Keychron K2,Keyboard,"Keychron K2 wireless mechanical keyboard with compact layout, RGB backlight, and compatibility with Mac and Windows.",28,All Season,89
+P015,NVIDIA RTX 4070,Graphics Card,"NVIDIA RTX 4070 graphics card designed for gaming, machine learning, rendering, and other GPU-intensive workloads.",6,Winter,599
+P016,AMD Ryzen 7 7800X3D,Processor,"AMD Ryzen 7 7800X3D desktop processor with high gaming performance and efficient multi-core processing.",9,Summer,399
+P017,Apple iPad Air,Tablet,"Apple iPad Air with powerful Apple silicon chip, 10.9-inch display, and support for productivity and creative applications.",17,All Season,599
+P018,Amazon Kindle Paperwhite,E-Reader,"Kindle Paperwhite with high-resolution display, adjustable warm light, waterproof design, and long battery life.",24,Winter,159
+P019,Anker PowerCore 20K,Power Bank,"Anker 20000mAh portable power bank with fast charging support and multiple USB ports for smartphones and other devices.",32,All Season,59
+P020,GoPro HERO 13,Camera,"GoPro HERO 13 action camera with high-resolution video recording, waterproof design, stabilization, and accessories for outdoor activities.",11,Summer,399

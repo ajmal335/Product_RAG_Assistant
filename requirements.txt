@@ -1,0 +1,7 @@
+torch==2.4.1.post100
+transformers==4.46.3
+sentence-transformers==3.3.1
+faiss-cpu==1.14.3
+pandas
+streamlit
+scikit-learn
