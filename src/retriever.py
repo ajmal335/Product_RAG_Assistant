@@ -1,308 +1,85 @@
-import faiss
+"""Exact catalog operations plus lazily initialized semantic retrieval."""
+from pathlib import Path
 import pandas as pd
 
-from sentence_transformers import SentenceTransformer
-
+DEFAULT_CATALOG = Path(__file__).resolve().parents[1] / 'data' / 'products.csv'
 
 class ProductRetriever:
+    def __init__(self, data_path=DEFAULT_CATALOG, model_name='all-MiniLM-L6-v2'):
+        self.df = pd.read_csv(data_path).reset_index(drop=True)
+        required = {'productid', 'name', 'category', 'description', 'stock', 'season', 'price'}
+        if not required.issubset(self.df.columns):
+            raise ValueError('Catalog is missing required columns')
+        if self.df.empty or self.df[list(required)].isna().any().any():
+            raise ValueError('Catalog must contain complete product records')
+        if self.df['productid'].duplicated().any():
+            raise ValueError('Product IDs must be unique')
+        self.df['price'] = pd.to_numeric(self.df['price'], errors='raise')
+        import math
+        if not self.df['price'].map(lambda x: math.isfinite(x) and x >= 0).all():
+            raise ValueError('Prices must be finite and nonnegative')
+        self.model_name = model_name
+        self.model = None
+        self.index = None
+        self.documents = [self._document(row) for _, row in self.df.iterrows()]
 
-    def __init__(
-        self,
-        data_path="data/products.csv",
-        model_name="all-MiniLM-L6-v2"
-    ):
+    @staticmethod
+    def _document(row):
+        return '\n'.join(f'{label}: {row[key]}' for label, key in [
+            ('Product ID', 'productid'), ('Name', 'name'), ('Category', 'category'),
+            ('Description', 'description'), ('Stock', 'stock'), ('Season', 'season')
+        ]) + f"\nPrice: ${row['price']}"
 
-        # ==========================================
-        # Load dataset
-        # ==========================================
+    def _ensure_index(self):
+        if self.index is not None:
+            return
+        import faiss
+        from sentence_transformers import SentenceTransformer
+        model = SentenceTransformer(self.model_name)
+        embeddings = model.encode(self.documents, normalize_embeddings=True).astype('float32')
+        index = faiss.IndexFlatIP(embeddings.shape[1])
+        index.add(embeddings)
+        self.model, self.index = model, index
 
-        self.df = pd.read_csv(
-            data_path
-        )
-
-
-        # ==========================================
-        # Load embedding model
-        # ==========================================
-
-        self.model = SentenceTransformer(
-            model_name
-        )
-
-
-        # ==========================================
-        # Create product documents
-        # ==========================================
-
-        self.documents = []
-
-        for _, row in self.df.iterrows():
-
-            document = f"""
-Product ID: {row['productid']}
-Name: {row['name']}
-Category: {row['category']}
-Description: {row['description']}
-Stock: {row['stock']}
-Season: {row['season']}
-Price: ${row['price']}
-""".strip()
-
-            self.documents.append(
-                document
-            )
-
-
-        # ==========================================
-        # Generate embeddings
-        # ==========================================
-
-        embeddings = self.model.encode(
-            self.documents
-        ).astype("float32")
-
-
-        # ==========================================
-        # Normalize embeddings
-        # ==========================================
-
-        faiss.normalize_L2(
-            embeddings
-        )
-
-
-        # ==========================================
-        # Create FAISS index
-        # ==========================================
-
-        dimension = embeddings.shape[1]
-
-        self.index = faiss.IndexFlatIP(
-            dimension
-        )
-
-
-        # ==========================================
-        # Add embeddings to index
-        # ==========================================
-
-        self.index.add(
-            embeddings
-        )
-
-
-    # ==========================================
-    # Semantic Search
-    # ==========================================
-
-    def search(
-        self,
-        query,
-        top_k=5,
-        category=None,
-        min_score=0.25
-    ):
-
-        # Generate query embedding
-        query_embedding = self.model.encode(
-            [query]
-        ).astype("float32")
-
-
-        # Normalize query embedding
-        faiss.normalize_L2(
-            query_embedding
-        )
-
-
-        # Search all documents so that
-        # category filtering can be applied
-        search_k = len(
-            self.documents
-        )
-
-        scores, indices = self.index.search(
-            query_embedding,
-            search_k
-        )
-
-
+    def search(self, query, top_k=5, category=None, min_score=0.25):
+        if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
+            raise ValueError('top_k must be a positive integer')
+        if not -1 <= min_score <= 1:
+            raise ValueError('min_score must be between -1 and 1')
+        self._ensure_index()
+        embedding = self.model.encode([query], normalize_embeddings=True).astype('float32')
+        scores, indices = self.index.search(embedding, len(self.documents))
         results = []
-
-
-        for score, index in zip(
-            scores[0],
-            indices[0]
-        ):
-
-            # ======================================
-            # Category filter
-            # ======================================
-
-            if category is not None:
-
-                product_category = str(
-                    self.df.iloc[index]["category"]
-                ).casefold()
-
-                if product_category != category.casefold():
-
-                    continue
-
-
-            # ======================================
-            # Similarity threshold
-            # ======================================
-
-            if score < min_score:
-
+        for score, index in zip(scores[0], indices[0]):
+            if index < 0 or score < min_score:
                 continue
-
-
-            # ======================================
-            # Add result
-            # ======================================
-
-            results.append(
-                {
-                    "document": self.documents[index],
-                    "score": float(score),
-                    "product_id": self.df.iloc[index]["productid"]
-                }
-            )
-
-
-            if len(results) >= top_k:
-
+            row = self.df.iloc[index]
+            if category and str(row['category']).casefold() != category.casefold():
+                continue
+            result = self._row_to_result(row)
+            result['score'] = float(score)
+            results.append(result)
+            if len(results) == top_k:
                 break
-
-
         return results
 
+    def _filtered(self, category):
+        return self.df if category is None else self.df[
+            self.df['category'].astype(str).str.casefold() == category.casefold()]
 
-    # ==========================================
-    # Filter by Category
-    # ==========================================
-
-    def filter_by_category(
-        self,
-        category
-    ):
-
+    def filter_by_category(self, category):
         if category is None:
-
             return []
+        return [self._row_to_result(row) for _, row in self._filtered(category).iterrows()]
 
+    def get_cheapest(self, category=None):
+        df = self._filtered(category)
+        return [] if df.empty else [self._row_to_result(df.loc[df['price'].idxmin()])]
 
-        filtered = self.df[
-            self.df["category"].astype(str).str.casefold()
-            == category.casefold()
-        ]
+    def get_most_expensive(self, category=None):
+        df = self._filtered(category)
+        return [] if df.empty else [self._row_to_result(df.loc[df['price'].idxmax()])]
 
-
-        results = []
-
-
-        for _, row in filtered.iterrows():
-
-            results.append(
-                self._row_to_result(
-                    row
-                )
-            )
-
-
-        return results
-
-
-    # ==========================================
-    # Cheapest Product
-    # ==========================================
-
-    def get_cheapest(
-        self,
-        category=None
-    ):
-
-        df = self.df
-
-
-        if category is not None:
-
-            df = df[
-                df["category"].astype(str).str.casefold()
-                == category.casefold()
-            ]
-
-
-        if df.empty:
-
-            return []
-
-
-        row = df.loc[
-            df["price"].idxmin()
-        ]
-
-
-        return [
-            self._row_to_result(
-                row
-            )
-        ]
-
-
-    # ==========================================
-    # Most Expensive Product
-    # ==========================================
-
-    def get_most_expensive(
-        self,
-        category=None
-    ):
-
-        df = self.df
-
-
-        if category is not None:
-
-            df = df[
-                df["category"].astype(str).str.casefold()
-                == category.casefold()
-            ]
-
-
-        if df.empty:
-
-            return []
-
-
-        row = df.loc[
-            df["price"].idxmax()
-        ]
-
-
-        return [
-            self._row_to_result(
-                row
-            )
-        ]
-
-
-    # ==========================================
-    # Convert DataFrame Row
-    # ==========================================
-
-    def _row_to_result(
-        self,
-        row
-    ):
-
-        index = row.name
-
-
-        return {
-            "document": self.documents[index],
-            "score": None,
-            "product_id": row["productid"]
-        }
+    def _row_to_result(self, row):
+        return {'document': self.documents[row.name], 'score': None,
+                'product_id': str(row['productid'])}

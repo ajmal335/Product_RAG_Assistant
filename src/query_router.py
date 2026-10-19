@@ -1,80 +1,29 @@
+"""Small, explicit English router; this is not a general intent classifier."""
+import re
+
 class QueryRouter:
+    CATEGORIES = {
+        'gaming laptops?': 'Gaming Laptop', 'laptops?': 'Laptop',
+        'smartphones?|phones?': 'Smartphone', 'headphones?': 'Headphones',
+        'monitors?': 'Monitor', 'mouse|mice': 'Mouse', 'keyboards?': 'Keyboard',
+        'graphics cards?': 'Graphics Card', 'processors?': 'Processor',
+        'tablets?': 'Tablet', 'e-readers?': 'E-Reader',
+        'power banks?': 'Power Bank', 'cameras?': 'Camera',
+    }
 
     def analyze(self, query):
-
-        query_lower = query.casefold()
-
+        text = ' '.join(query.casefold().split())
         filters = {}
-
-
-        # ==========================================
-        # Detect product category
-        # ==========================================
-
-        categories = [
-            "laptop",
-            "smartphone",
-            "headphones",
-            "monitor",
-            "mouse",
-            "keyboard",
-            "graphics card",
-            "processor",
-            "tablet",
-            "e-reader",
-            "power bank",
-            "camera"
-        ]
-
-
-        for category in categories:
-
-            if category in query_lower:
-
-                filters["category"] = category.title()
-
+        for pattern, category in self.CATEGORIES.items():
+            if re.search(r'\b(?:' + pattern + r')\b', text):
+                filters['category'] = category
                 break
-
-
-        # ==========================================
-        # Detect intent
-        # ==========================================
-
-        if "cheapest" in query_lower:
-
-            intent = "cheapest"
-
-        elif "most expensive" in query_lower:
-
-            intent = "most_expensive"
-
-        elif "lowest price" in query_lower:
-
-            intent = "cheapest"
-
-        elif "highest price" in query_lower:
-
-            intent = "most_expensive"
-
-        elif (
-            "show me" in query_lower
-            or "list" in query_lower
-            or "available" in query_lower
-            or query_lower.startswith("i need")
-        ):
-
-            intent = "category_listing"
-
+        if re.search(r'\b(cheapest|lowest price)\b', text):
+            intent = 'cheapest'
+        elif re.search(r'\b(most expensive|highest price)\b', text):
+            intent = 'most_expensive'
+        elif filters and re.search(r'\b(show me|list|available)\b', text):
+            intent = 'category_listing'
         else:
-
-            intent = "semantic_search"
-
-
-        # ==========================================
-        # Return query analysis
-        # ==========================================
-
-        return {
-            "intent": intent,
-            "filters": filters
-        }
+            intent = 'semantic_search'
+        return {'intent': intent, 'filters': filters}

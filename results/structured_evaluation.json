@@ -1,0 +1,89 @@
+{
+  "scope": "8 hand-selected exact/routing regression cases; no neural inference",
+  "passed": 8,
+  "total": 8,
+  "cases": [
+    {
+      "query": "cheapest laptop",
+      "expected_ids": [
+        "P005"
+      ],
+      "actual_ids": [
+        "P005"
+      ],
+      "passed": true
+    },
+    {
+      "query": "most expensive laptop",
+      "expected_ids": [
+        "P001"
+      ],
+      "actual_ids": [
+        "P001"
+      ],
+      "passed": true
+    },
+    {
+      "query": "lowest price smartphone",
+      "expected_ids": [
+        "P008"
+      ],
+      "actual_ids": [
+        "P008"
+      ],
+      "passed": true
+    },
+    {
+      "query": "highest price smartphone",
+      "expected_ids": [
+        "P006"
+      ],
+      "actual_ids": [
+        "P006"
+      ],
+      "passed": true
+    },
+    {
+      "query": "show me headphones",
+      "expected_ids": [
+        "P009",
+        "P010"
+      ],
+      "actual_ids": [
+        "P009",
+        "P010"
+      ],
+      "passed": true
+    },
+    {
+      "query": "list gaming laptops",
+      "expected_ids": [
+        "P004"
+      ],
+      "actual_ids": [
+        "P004"
+      ],
+      "passed": true
+    },
+    {
+      "query": "cheapest mouse",
+      "expected_ids": [
+        "P013"
+      ],
+      "actual_ids": [
+        "P013"
+      ],
+      "passed": true
+    },
+    {
+      "query": "show me tablets",
+      "expected_ids": [
+        "P017"
+      ],
+      "actual_ids": [
+        "P017"
+      ],
+      "passed": true
+    }
+  ]
+}

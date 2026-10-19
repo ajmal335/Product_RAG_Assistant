@@ -1,11 +1,10 @@
 from src.query_router import QueryRouter
 from src.retriever import ProductRetriever
-from src.generator import RAGGenerator
 
 
 class RAGPipeline:
 
-    def __init__(self):
+    def __init__(self, retriever=None, generator=None):
 
         print("Initializing RAG pipeline...")
 
@@ -13,15 +12,19 @@ class RAGPipeline:
         self.router = QueryRouter()
 
         # Product retriever
-        self.retriever = ProductRetriever()
+        self.retriever = retriever if retriever is not None else ProductRetriever()
 
         # LLM generator
-        self.generator = RAGGenerator()
+        self.generator = generator
 
         print("RAG pipeline ready.")
 
 
     def run(self, query):
+
+        if not isinstance(query, str) or not query.strip():
+            raise ValueError("query must be a nonempty string")
+        query = query.strip()
 
         # ==========================================
         # 1. Analyze query
@@ -113,6 +116,10 @@ class RAGPipeline:
                     result["document"]
                     for result in results
                 )
+
+                if self.generator is None:
+                    from src.generator import RAGGenerator
+                    self.generator = RAGGenerator()
 
                 answer = self.generator.generate(
                     query,

@@ -1,429 +1,109 @@
-# 🤖 Product RAG Assistant
+# Product RAG Assistant
 
-> A Retrieval-Augmented Generation (RAG) system for intelligent product search and question answering.
+A product-catalog question-answering application with exact price queries, semantic retrieval, a Streamlit interface, and a FastAPI endpoint.
 
-The **Product RAG Assistant** combines semantic search, vector retrieval, structured filtering, query routing, and large language model generation to answer questions from a product catalog.
+**Python · Sentence Transformers · FAISS · FLAN-T5 · FastAPI · Streamlit**
 
-The application uses **Sentence Transformers** for embeddings, **FAISS** for vector search, **Hugging Face Transformers** for answer generation, and **Streamlit** for the user interface.
+[Portfolio](https://github.com/ajmal335) · [API guide](docs/API.md) · [Engineering notes](docs/ENGINEERING.md)
 
----
+## What it does
 
-## 📌 Project Overview
+- Routes supported English queries to exact catalog operations or semantic retrieval.
+- Finds the cheapest/most expensive product and lists products in a recognized category.
+- Retrieves normalized embeddings with FAISS; uses FLAN-T5 for semantic answers.
+- Returns source product IDs, documents, similarity scores, and routing information.
+- Exposes `POST /query`, `GET /health`, and interactive API documentation at `/docs`.
+- Rejects invalid requests and returns a retryable response when inference is busy.
 
-Traditional keyword search often fails when a user asks a question using different words from those stored in the database.
+The included 20-product catalog is demonstration data, not current retail inventory or pricing.
 
-For example:
-> *Which laptop is good for programming?*
+## Architecture
 
-Instead of matching only keywords, this system converts the query and product information into embeddings and retrieves products based on semantic similarity.
-
-For exact questions such as:
-> *Which product is the cheapest laptop?*
-
-the system uses structured filtering with Pandas rather than relying only on semantic similarity. This creates a hybrid RAG architecture combining semantic and structured retrieval.
-
----
-
-## ✨ Features
-
-- 🔤 Text embeddings using Sentence Transformers
-- 🔎 Semantic similarity search
-- 🗂️ FAISS vector search
-- 📊 Cosine similarity
-- 🏷️ Metadata/category filtering
-- 🧠 Query intent detection
-- 🔀 Hybrid retrieval
-- 📋 Structured product queries
-- 🤖 LLM-based answer generation
-- 🛡️ Context-grounded responses
-- 🎯 Similarity threshold for weak-match filtering
-- 📈 RAG evaluation
-- 🌐 Streamlit web application
-
----
-
-## 🏗️ System Architecture
-
-```text
-                          ┌─────────────────┐
-                          │    User Query   │
-                          └────────┬────────┘
-                                   │
-                                   ▼
-                          ┌─────────────────┐
-                          │  Query Router   │
-                          └────────┬────────┘
-                                   │
-                    ┌──────────────┴──────────────┐
-                    │                             │
-                    ▼                             ▼
-          ┌─────────────────┐           ┌─────────────────┐
-          │ Structured Query│           │ Semantic Query  │
-          └────────┬────────┘           └────────┬────────┘
-                   │                             │
-                   ▼                             ▼
-              ┌─────────┐                   ┌─────────┐
-              │ Pandas  │                   │  FAISS  │
-              └────┬────┘                   └────┬────┘
-                   │                             │
-                   └──────────────┬──────────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │ Retrieved Context│
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │   RAG Generator  │
-                         │    FLAN-T5       │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │   Final Answer   │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │  Streamlit App   │
-                         └──────────────────┘
+```mermaid
+flowchart TD
+    A[Streamlit or REST request] --> B[Query router]
+    B --> C[Exact catalog lookup]
+    B --> D[Semantic retrieval]
+    D --> E{Relevant products?}
+    E -->|Yes| F[FLAN-T5 generation]
+    E -->|No| G[Insufficient information]
+    C --> H[Answer and sources]
+    F --> H
+    G --> H
 ```
 
----
+## Quick start
 
-## 🔄 RAG Workflow
-
-The complete workflow is:
-
-```text
-Product Dataset
-      ↓
-Product Documents
-      ↓
-Text Embeddings
-      ↓
-FAISS Vector Index
-      ↓
-User Query
-      ↓
-Query Router
-      ↓
-Structured / Semantic Retrieval
-      ↓
-Relevant Product Context
-      ↓
-LLM
-      ↓
-Grounded Answer
-```
-
----
-
-## 🧠 Query Routing
-
-The system automatically analyzes the user's question and identifies the appropriate retrieval strategy.
-
-### Supported Intents
-- `cheapest`
-- `most_expensive`
-- `category_listing`
-- `semantic_search`
-
-### Example
-**User query:**
-> *Which product is the cheapest laptop?*
-
-**Router output:**
-- **Intent:** `cheapest`
-- **Category:** `Laptop`
-
-The system then performs an exact price comparison using the product dataset.
-
----
-
-## 🔀 Hybrid Retrieval
-
-The system uses two retrieval strategies.
-
-### 1. Structured Retrieval
-Used for questions that require exact operations.
-
-**Example:**
-> *Which product is the cheapest laptop?*
-
-```text
-User Query ──► Query Router ──► cheapest ──► Category Filter ──► Pandas ──► Minimum Price ──► Answer
-```
-
-**Another example:**
-> *Which is the most expensive laptop?*
-
-```text
-User Query ──► Query Router ──► most_expensive ──► Category Filter ──► Pandas ──► Maximum Price ──► Answer
-```
-
-### 2. Semantic Retrieval
-Used for questions where meaning and relevance are more important than exact filtering.
-
-**Example:**
-> *Which laptop is good for programming?*
-
-```text
-User Query ──► Query Embedding ──► FAISS Similarity Search ──► Relevant Products ──► Context ──► LLM ──► Answer
-```
-
----
-
-## 🔤 Embeddings
-
-The project uses `all-MiniLM-L6-v2`.
-
-Each product document is converted into a **384-dimensional vector**. These vectors represent the semantic meaning of the product information and are normalized before being stored in FAISS.
-
----
-
-## 🔎 FAISS Retrieval
-
-FAISS is used for efficient vector similarity search. The project uses `faiss.IndexFlatIP` with normalized vectors.
-
-Because the vectors are normalized, inner-product similarity approximates cosine similarity. The system also applies a similarity threshold to reject very weak semantic matches.
-
----
-
-## 🤖 Generation Model
-
-The project uses `google/flan-t5-small` as the generation model.
-
-The model receives the retrieved product context and user question and generates the final answer. The generator is instructed to use only the retrieved context.
-
----
-
-## 🛡️ Grounded Generation
-
-The system follows a simple grounding principle:
-
-```text
-User Question + Retrieved Context ──► LLM ──► Grounded Answer
-```
-
-The generator is instructed not to use outside information. If relevant information cannot be retrieved, the system returns:
-
-> *"I don't have enough information to answer this."*
-
----
-
-## 📊 Evaluation
-
-The project includes a RAG evaluation script. Run:
+Python 3.11 is recommended. Run commands from the repository root.
 
 ```bash
-python -m experiments.evaluate_rag
+git clone https://github.com/ajmal335/Product_RAG_Assistant.git
+cd Product_RAG_Assistant
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m uvicorn src.api:app --host 127.0.0.1 --port 8000
 ```
 
-The evaluation covers:
-- Structured price queries
-- Category queries
-- Semantic retrieval
-- Multi-product retrieval
-
-The evaluation compares the generated response against expected product information.
-
----
-
-## 💬 Example Queries
-
-### 💰 Price Queries
-- *Which product is the cheapest laptop?*
-- *Which is the most expensive laptop?*
-
-### 📱 Category Queries
-- *Show me smartphones*
-- *Which headphones are available?*
-
-### 💻 Semantic Queries
-- *Which laptop is good for programming?*
-- *Which laptop is suitable for professional work?*
-- *I need a laptop for programming and productivity.*
-
----
-
-## 🖥️ Streamlit Application
-
-The project includes a Streamlit interface for interacting with the RAG system. Run:
+On Windows, activate with `.venv\Scripts\activate` instead. Open http://127.0.0.1:8000/docs to send requests.
 
 ```bash
-streamlit run app.py
+curl -X POST http://127.0.0.1:8000/query \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"Which product is the cheapest laptop?"}'
 ```
 
-The application provides:
-- User query input
-- Example questions
-- Generated answers
-- Query intent information
-- Detected filters
-- Retrieved product context
-- Similarity scores
+The example returns **HP Pavilion 15 (P005), $699**, from the bundled demonstration catalog.
 
----
-
-## 🛠️ Tech Stack
-
-| Technology | Purpose |
-| :--- | :--- |
-| **Python** | Application development |
-| **PyTorch** | Deep learning framework |
-| **Hugging Face Transformers** | Text generation |
-| **Sentence Transformers** | Text embeddings |
-| **FAISS** | Vector similarity search |
-| **Pandas** | Structured data processing |
-| **Scikit-learn** | Machine learning utilities |
-| **Streamlit** | Web application |
-
----
-
-## 📂 Project Structure
-
-```text
-Product_RAG_Assistant/
-│
-├── data/
-│   └── products.csv
-│
-├── src/
-│   ├── generator.py
-│   ├── query_router.py
-│   ├── retriever.py
-│   └── rag_pipeline.py
-│
-├── experiments/
-│   ├── chunking_demo.py
-│   ├── embedding_demo.py
-│   ├── faiss_demo.py
-│   ├── product_embeddings.py
-│   ├── product_loader.py
-│   ├── rag_demo.py
-│   ├── test_retriever.py
-│   ├── test_router.py
-│   ├── test_routed_retrieval.py
-│   ├── test_rag_pipeline.py
-│   └── evaluate_rag.py
-│
-├── app.py
-├── README.md
-├── requirements.txt
-└── .gitignore
-```
-
----
-
-## ⚙️ Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone git@github.com:ajmal335/Product_RAG_Assistant.git
-   ```
-
-2. **Enter the project directory:**
-   ```bash
-   cd Product_RAG_Assistant
-   ```
-
-3. **Activate the Conda environment:**
-   ```bash
-   conda activate rag-engineer
-   ```
-
-4. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
----
-
-## ▶️ Run the Application
-
-Start the Streamlit application:
+For the original UI:
 
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
----
+The first semantic query downloads the embedding and generation models from Hugging Face. Exact catalog queries do not load either model. Network access and sufficient RAM/disk are needed for semantic inference.
 
-## 🧪 Run the Tests
+## Lightweight development and evaluation
 
-- **Test Query Router:**
-  ```bash
-  python -m experiments.test_router
-  ```
+The API, exact queries, routing, and unit tests work without model downloads:
 
-- **Test Retrieval:**
-  ```bash
-  python -m experiments.test_retriever
-  ```
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+python -m experiments.evaluate_structured
+```
 
-- **Test Routed Retrieval:**
-  ```bash
-  python -m experiments.test_routed_retrieval
-  ```
+**Validation:** 22 automated tests passed during the October 2026 update. Tests cover real catalog queries, routing regressions, request validation, concurrency rejection, failure handling, and abstention. Semantic generation is tested with injected doubles; these tests do not measure model answer quality. See [the reproducible structured evaluation](results/structured_evaluation.json).
 
-- **Test Complete RAG Pipeline:**
-  ```bash
-  python -m experiments.test_rag_pipeline
-  ```
+The earlier `experiments/evaluate_rag.py` remains available for model-backed experiments after installing the full dependencies. Full neural inference and Docker builds were not executed during this update.
 
-- **Run RAG Evaluation:**
-  ```bash
-  python -m experiments.evaluate_rag
-  ```
+## Docker
 
----
+```bash
+docker build -t product-rag .
+docker run --rm -p 127.0.0.1:8000:8000 product-rag
+```
 
-## ⚠️ Model Limitations
+One worker is intentional: each worker would load its own model and catalog. Model cache is ephemeral unless a persistent volume is configured. Docker configuration is supplied, but requires verification on a Docker host.
 
-This project uses `google/flan-t5-small` as a lightweight generation model. Because it is a relatively small model, complex multi-product reasoning may not always be perfect.
+## Repository map
 
-For this reason, exact operations such as:
-- Cheapest product
-- Most expensive product
-- Category listing
+| Path | Purpose |
+|---|---|
+| `src/query_router.py` | Rule-based intent/category routing |
+| `src/retriever.py` | Catalog validation, exact lookup, lazy semantic index |
+| `src/generator.py` | FLAN-T5 prompt and generation |
+| `src/rag_pipeline.py` | Retrieval and answer orchestration |
+| `src/api.py` | Validated REST interface |
+| `app.py` | Streamlit UI |
+| `tests/` | Offline automated regression tests |
+| `experiments/` | Learning scripts and evaluations |
+| `data/products.csv` | Bundled demonstration catalog |
 
-are handled programmatically. This prevents the LLM from being responsible for deterministic data operations. A larger instruction-tuned model could improve generation quality for more complex questions.
+## Limitations
 
----
+This is a portfolio application, not a deployed production service. Routing uses English keyword rules and can misread negation or compound requests. Semantic generation can hallucinate; source retrieval and a prompt are not a guarantee of factual answers. The generator truncates input to 512 tokens, so some retrieved content may be omitted. Similarity scores are not calibrated confidence. No authentication, public-service rate limiting, durable index, or cloud deployment is included. Bind locally; add access controls and infrastructure limits before public hosting.
 
-## 🚀 Future Improvements
+## Next engineering steps
 
-Potential improvements include:
-- Larger instruction-tuned LLM
-- Advanced query classification
-- More metadata filters
-- Document reranking
-- Conversation memory & Chat history
-- PDF/document ingestion
-- Multiple knowledge sources
-- Persistent vector database
-- Cloud deployment
-- RAG observability and monitoring
-- Automated evaluation with larger test sets
-
----
-
-## 🎯 Learning Outcomes
-
-This project demonstrates practical AI Engineering concepts including:
-- Embeddings & Semantic similarity
-- Vector search & FAISS
-- Metadata filtering & Query routing
-- Hybrid retrieval & Structured retrieval
-- Context construction & LLM generation
-- Grounded generation & RAG evaluation
-- Streamlit application development
-
----
-
-## 👨‍💻 Author
-
-**Ajmal**  
-*AI Engineer | Python | Machine Learning | Deep Learning | NLP | RAG*
+Evaluate semantic answers against a labeled question set, add token-aware context budgeting, persist the index, and introduce authentication and deployment monitoring.

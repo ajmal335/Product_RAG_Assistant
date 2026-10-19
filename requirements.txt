@@ -1,7 +1,8 @@
-torch==2.4.1.post100
-transformers==4.46.3
-sentence-transformers==3.3.1
-faiss-cpu==1.14.3
-pandas
-streamlit
-scikit-learn
+-r requirements-api.txt
+torch>=2.4,<3
+transformers>=4.46,<5
+sentence-transformers>=3.3,<4
+faiss-cpu>=1.9,<2
+streamlit>=1.40,<2
+scikit-learn>=1.5,<2
+sentencepiece>=0.2,<1
